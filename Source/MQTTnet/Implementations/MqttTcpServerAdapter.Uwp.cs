@@ -48,7 +48,7 @@ namespace MQTTnet.Implementations
 
             if (options.TlsEndpointOptions.IsEnabled)
             {
-                throw new NotSupportedException("TLS servers are not supported for UWP apps.");
+                throw new NotSupportedException("TLS servers are not supported when using 'uap10.0'.");
             }
         }
 
@@ -89,7 +89,7 @@ namespace MQTTnet.Implementations
                         }
                     }
                     
-                    using (var clientAdapter = new MqttChannelAdapter(new MqttTcpChannel(args.Socket, clientCertificate, _options), new MqttPacketFormatterAdapter(new MqttPacketWriter()), _rootLogger))
+                    using (var clientAdapter = new MqttChannelAdapter(new MqttTcpChannel(args.Socket, clientCertificate, _options), new MqttPacketFormatterAdapter(new MqttPacketWriter()), null, _rootLogger))
                     {
                         await clientHandler(clientAdapter).ConfigureAwait(false);
                     }
@@ -113,7 +113,7 @@ namespace MQTTnet.Implementations
                 }
                 catch (Exception exception)
                 { 
-                    _logger.Error(exception, "Error while cleaning up client connection");
+                    _logger.Error(exception, "Error while cleaning up client connection.");
                 }
             }
         }

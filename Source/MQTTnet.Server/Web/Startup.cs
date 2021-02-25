@@ -116,10 +116,15 @@ namespace MQTTnet.Server.Web
             {
                 var securityScheme = new OpenApiSecurityScheme
                 {
-                    Scheme = "Basic",
+                    Scheme = "basic",
                     Name = HeaderNames.Authorization,
                     Type = SecuritySchemeType.Http,
-                    In = ParameterLocation.Header
+                    In = ParameterLocation.Header,
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Swagger"
+                    }
                 };
 
                 c.AddSecurityDefinition("Swagger", securityScheme);
@@ -181,8 +186,7 @@ namespace MQTTnet.Server.Web
 
             var webSocketOptions = new WebSocketOptions
             {
-                KeepAliveInterval = TimeSpan.FromSeconds(mqttSettings.WebSocketEndPoint.KeepAliveInterval),
-                ReceiveBufferSize = mqttSettings.WebSocketEndPoint.ReceiveBufferSize
+                KeepAliveInterval = TimeSpan.FromSeconds(mqttSettings.WebSocketEndPoint.KeepAliveInterval)
             };
 
             if (mqttSettings.WebSocketEndPoint.AllowedOrigins?.Any() == true)

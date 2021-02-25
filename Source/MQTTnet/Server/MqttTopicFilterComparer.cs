@@ -4,14 +4,14 @@ namespace MQTTnet.Server
 {
     public static class MqttTopicFilterComparer
     {
-        private const char LevelSeparator = '/';
-        private const char MultiLevelWildcard = '#';
-        private const char SingleLevelWildcard = '+';
+        const char LevelSeparator = '/';
+        const char MultiLevelWildcard = '#';
+        const char SingleLevelWildcard = '+';
 
         public static bool IsMatch(string topic, string filter)
         {
-            if (string.IsNullOrEmpty(topic)) throw new ArgumentNullException(nameof(topic));
-            if (string.IsNullOrEmpty(filter)) throw new ArgumentNullException(nameof(filter));
+            if (topic == null) throw new ArgumentNullException(nameof(topic));
+            if (filter == null) throw new ArgumentNullException(nameof(filter));
 
             var sPos = 0;
             var sLen = filter.Length;
@@ -28,6 +28,13 @@ namespace MQTTnet.Server
                         if (sPos == sLen - 3
                                 && filter[sPos + 1] == LevelSeparator
                                 && filter[sPos + 2] == MultiLevelWildcard)
+                        {
+                            return true;
+                        }
+                        // Check for e.g. foo/ matching foo/#
+                        if (sPos == sLen - 2
+                                && filter[sPos] == LevelSeparator
+                                && filter[sPos + 1] == MultiLevelWildcard)
                         {
                             return true;
                         }

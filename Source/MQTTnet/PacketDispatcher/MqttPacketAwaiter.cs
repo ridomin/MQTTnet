@@ -9,12 +9,16 @@ namespace MQTTnet.PacketDispatcher
     public sealed class MqttPacketAwaiter<TPacket> : IMqttPacketAwaiter where TPacket : MqttBasePacket
     {
         readonly TaskCompletionSource<MqttBasePacket> _taskCompletionSource;
-        readonly ushort? _packetIdentifier;
         readonly MqttPacketDispatcher _owningPacketDispatcher;
 
-        public MqttPacketAwaiter(ushort? packetIdentifier, MqttPacketDispatcher owningPacketDispatcher)
+        public MqttPacketAwaiter(ushort packetIdentifier, MqttPacketDispatcher owningPacketDispatcher)
         {
-            _packetIdentifier = packetIdentifier;
+            PacketFilter = new MqttPacketAwaiterPacketFilter
+            {
+                Type = typeof(TPacket),
+                Identifier = packetIdentifier
+            };
+            
             _owningPacketDispatcher = owningPacketDispatcher ?? throw new ArgumentNullException(nameof(owningPacketDispatcher));
 #if NET452
             _taskCompletionSource = new TaskCompletionSource<MqttBasePacket>();
@@ -22,15 +26,18 @@ namespace MQTTnet.PacketDispatcher
             _taskCompletionSource = new TaskCompletionSource<MqttBasePacket>(TaskCreationOptions.RunContinuationsAsynchronously);
 #endif
         }
-
+        
+        public MqttPacketAwaiterPacketFilter PacketFilter { get; }
+        
         public async Task<TPacket> WaitOneAsync(TimeSpan timeout)
         {
             using (var timeoutToken = new CancellationTokenSource(timeout))
             {
-                timeoutToken.Token.Register(() => Fail(new MqttCommunicationTimedOutException()));
-
-                var packet = await _taskCompletionSource.Task.ConfigureAwait(false);
-                return (TPacket)packet;
+                using (timeoutToken.Token.Register(() => Fail(new MqttCommunicationTimedOutException())))
+                {
+                    var packet = await _taskCompletionSource.Task.ConfigureAwait(false);
+                    return (TPacket)packet;
+                }
             }
         }
 
@@ -81,7 +88,7 @@ namespace MQTTnet.PacketDispatcher
 
         public void Dispose()
         {
-            _owningPacketDispatcher.RemoveAwaiter<TPacket>(_packetIdentifier);
+            _owningPacketDispatcher.RemoveAwaiter(this);
         }
     }
 }

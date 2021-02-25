@@ -43,7 +43,7 @@ namespace MQTTnet.Benchmarks
 
             var channel = new TestMqttChannel(_stream);
             
-            _channelAdapter = new MqttChannelAdapter(channel, serializer, new MqttNetLogger());
+            _channelAdapter = new MqttChannelAdapter(channel, serializer, null, new MqttNetLogger());
         }
 
         [Benchmark]
@@ -53,7 +53,7 @@ namespace MQTTnet.Benchmarks
 
             for (var i = 0; i < 10000; i++)
             {
-                _channelAdapter.ReceivePacketAsync(TimeSpan.Zero, CancellationToken.None).GetAwaiter().GetResult();
+                _channelAdapter.ReceivePacketAsync(CancellationToken.None).GetAwaiter().GetResult();
             }
 
             _stream.Position = 0;
@@ -66,7 +66,7 @@ namespace MQTTnet.Benchmarks
 
             for (var i = 0; i < 10000; i++)
             {
-                _channelAdapter.SendPacketAsync(_packet, TimeSpan.Zero, CancellationToken.None).GetAwaiter().GetResult();
+                _channelAdapter.SendPacketAsync(_packet, CancellationToken.None).GetAwaiter().GetResult();
             }
 
             _stream.Position = 0;

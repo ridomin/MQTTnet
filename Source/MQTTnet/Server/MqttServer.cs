@@ -26,6 +26,7 @@ namespace MQTTnet.Server
 
         MqttClientSessionsManager _clientSessionsManager;
         IMqttRetainedMessagesManager _retainedMessagesManager;
+        MqttServerKeepAliveMonitor _keepAliveMonitor;
         CancellationTokenSource _cancellationTokenSource;
 
         public MqttServer(IEnumerable<IMqttServerAdapter> adapters, IMqttNetLogger logger)
@@ -165,6 +166,9 @@ namespace MQTTnet.Server
             _clientSessionsManager = new MqttClientSessionsManager(Options, _retainedMessagesManager, _eventDispatcher, _rootLogger);
             _clientSessionsManager.Start(cancellationToken);
 
+            _keepAliveMonitor = new MqttServerKeepAliveMonitor(Options, _clientSessionsManager, _rootLogger);
+            _keepAliveMonitor.Start(cancellationToken);
+
             if (options.Endpoints.Any())
             {
                 foreach (var endpoint in options.Endpoints)
@@ -203,10 +207,10 @@ namespace MQTTnet.Server
                     return;
                 }
 
-                await _clientSessionsManager.StopAsync().ConfigureAwait(false);
-
                 _cancellationTokenSource.Cancel(false);
 
+                await _clientSessionsManager.CloseAllConnectionsAsync().ConfigureAwait(false);
+                
                 foreach (var adapter in _adapters)
                 {
                     adapter.ClientHandler = null;
@@ -254,7 +258,12 @@ namespace MQTTnet.Server
 
             base.Dispose(disposing);
         }
-        
+
+        Task OnHandleClient(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+        {
+            return _clientSessionsManager.HandleClientConnectionAsync(channelAdapter, cancellationToken);
+        }
+
         void ThrowIfStarted()
         {
             if (_cancellationTokenSource != null)

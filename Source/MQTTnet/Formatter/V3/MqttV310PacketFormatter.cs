@@ -63,20 +63,20 @@ namespace MQTTnet.Formatter.V3
 
             switch ((MqttControlPacketType)controlPacketType)
             {
-                case MqttControlPacketType.Connect: return DecodeConnectPacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.ConnAck: return DecodeConnAckPacket(receivedMqttPacket.Body);
+                case MqttControlPacketType.Connect: return DecodeConnectPacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.ConnAck: return DecodeConnAckPacket(receivedMqttPacket.BodyReader);
                 case MqttControlPacketType.Disconnect: return DisconnectPacket;
                 case MqttControlPacketType.Publish: return DecodePublishPacket(receivedMqttPacket);
-                case MqttControlPacketType.PubAck: return DecodePubAckPacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.PubRec: return DecodePubRecPacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.PubRel: return DecodePubRelPacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.PubComp: return DecodePubCompPacket(receivedMqttPacket.Body);
+                case MqttControlPacketType.PubAck: return DecodePubAckPacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.PubRec: return DecodePubRecPacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.PubRel: return DecodePubRelPacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.PubComp: return DecodePubCompPacket(receivedMqttPacket.BodyReader);
                 case MqttControlPacketType.PingReq: return PingReqPacket;
                 case MqttControlPacketType.PingResp: return PingRespPacket;
-                case MqttControlPacketType.Subscribe: return DecodeSubscribePacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.SubAck: return DecodeSubAckPacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.Unsubscibe: return DecodeUnsubscribePacket(receivedMqttPacket.Body);
-                case MqttControlPacketType.UnsubAck: return DecodeUnsubAckPacket(receivedMqttPacket.Body);
+                case MqttControlPacketType.Subscribe: return DecodeSubscribePacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.SubAck: return DecodeSubAckPacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.Unsubscibe: return DecodeUnsubscribePacket(receivedMqttPacket.BodyReader);
+                case MqttControlPacketType.UnsubAck: return DecodeUnsubAckPacket(receivedMqttPacket.BodyReader);
 
                 default: throw new MqttProtocolViolationException($"Packet type ({controlPacketType}) not supported.");
             }
@@ -202,18 +202,18 @@ namespace MQTTnet.Formatter.V3
 
         static MqttBasePacket DecodePublishPacket(ReceivedMqttPacket receivedMqttPacket)
         {
-            ThrowIfBodyIsEmpty(receivedMqttPacket.Body);
+            ThrowIfBodyIsEmpty(receivedMqttPacket.BodyReader);
 
             var retain = (receivedMqttPacket.FixedHeader & 0x1) > 0;
             var qualityOfServiceLevel = (MqttQualityOfServiceLevel)(receivedMqttPacket.FixedHeader >> 1 & 0x3);
             var dup = (receivedMqttPacket.FixedHeader & 0x8) > 0;
 
-            var topic = receivedMqttPacket.Body.ReadStringWithLengthPrefix();
+            var topic = receivedMqttPacket.BodyReader.ReadStringWithLengthPrefix();
 
-            ushort? packetIdentifier = null;
+            ushort packetIdentifier = 0;
             if (qualityOfServiceLevel > MqttQualityOfServiceLevel.AtMostOnce)
             {
-                packetIdentifier = receivedMqttPacket.Body.ReadTwoByteInteger();
+                packetIdentifier = receivedMqttPacket.BodyReader.ReadTwoByteInteger();
             }
 
             var packet = new MqttPublishPacket
@@ -225,9 +225,9 @@ namespace MQTTnet.Formatter.V3
                 Dup = dup
             };
 
-            if (!receivedMqttPacket.Body.EndOfStream)
+            if (!receivedMqttPacket.BodyReader.EndOfStream)
             {
-                packet.Payload = receivedMqttPacket.Body.ReadRemainingData();
+                packet.Payload = receivedMqttPacket.BodyReader.ReadRemainingData();
             }
 
             return packet;
@@ -414,12 +414,12 @@ namespace MQTTnet.Formatter.V3
 
         static byte EncodePubRelPacket(MqttPubRelPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("PubRel packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             return MqttPacketWriter.BuildFixedHeader(MqttControlPacketType.PubRel, 0x02);
         }
@@ -432,12 +432,12 @@ namespace MQTTnet.Formatter.V3
 
             if (packet.QualityOfServiceLevel > MqttQualityOfServiceLevel.AtMostOnce)
             {
-                if (!packet.PacketIdentifier.HasValue)
+                if (packet.PacketIdentifier == 0)
                 {
                     throw new MqttProtocolViolationException("Publish packet has no packet identifier.");
                 }
 
-                packetWriter.Write(packet.PacketIdentifier.Value);
+                packetWriter.Write(packet.PacketIdentifier);
             }
             else
             {
@@ -471,36 +471,36 @@ namespace MQTTnet.Formatter.V3
 
         static byte EncodePubAckPacket(MqttPubAckPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("PubAck packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             return MqttPacketWriter.BuildFixedHeader(MqttControlPacketType.PubAck);
         }
 
         static byte EncodePubRecPacket(MqttPubRecPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("PubRec packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             return MqttPacketWriter.BuildFixedHeader(MqttControlPacketType.PubRec);
         }
 
         static byte EncodePubCompPacket(MqttPubCompPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("PubComp packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             return MqttPacketWriter.BuildFixedHeader(MqttControlPacketType.PubComp);
         }
@@ -509,12 +509,12 @@ namespace MQTTnet.Formatter.V3
         {
             if (!packet.TopicFilters.Any()) throw new MqttProtocolViolationException("At least one topic filter must be set [MQTT-3.8.3-3].");
 
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("Subscribe packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             if (packet.TopicFilters?.Count > 0)
             {
@@ -530,12 +530,12 @@ namespace MQTTnet.Formatter.V3
 
         static byte EncodeSubAckPacket(MqttSubAckPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("SubAck packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             if (packet.ReturnCodes?.Any() == true)
             {
@@ -552,12 +552,12 @@ namespace MQTTnet.Formatter.V3
         {
             if (!packet.TopicFilters.Any()) throw new MqttProtocolViolationException("At least one topic filter must be set [MQTT-3.10.3-2].");
 
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("Unsubscribe packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
 
             if (packet.TopicFilters?.Any() == true)
             {
@@ -572,12 +572,12 @@ namespace MQTTnet.Formatter.V3
 
         static byte EncodeUnsubAckPacket(MqttUnsubAckPacket packet, IMqttPacketWriter packetWriter)
         {
-            if (!packet.PacketIdentifier.HasValue)
+            if (packet.PacketIdentifier == 0)
             {
                 throw new MqttProtocolViolationException("UnsubAck packet has no packet identifier.");
             }
 
-            packetWriter.Write(packet.PacketIdentifier.Value);
+            packetWriter.Write(packet.PacketIdentifier);
             return MqttPacketWriter.BuildFixedHeader(MqttControlPacketType.UnsubAck);
         }
 

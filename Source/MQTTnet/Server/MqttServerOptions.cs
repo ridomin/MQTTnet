@@ -14,6 +14,10 @@ namespace MQTTnet.Server
         [Obsolete("Please use _Endpoints_ instead. This will be removed soon.")]
         public MqttServerTlsTcpEndpointOptions TlsEndpointOptions { get; } = new MqttServerTlsTcpEndpointOptions();
 
+        /// <summary>
+        /// Gets or sets the client identifier.
+        /// Hint: This identifier needs to be unique over all used clients / devices on the broker to avoid connection issues.
+        /// </summary>
         public string ClientId { get; set; }
 
         public bool EnablePersistentSessions { get; set; }
@@ -23,6 +27,8 @@ namespace MQTTnet.Server
         public MqttPendingMessagesOverflowStrategy PendingMessagesOverflowStrategy { get; set; } = MqttPendingMessagesOverflowStrategy.DropOldestQueuedMessage;
 
         public TimeSpan DefaultCommunicationTimeout { get; set; } = TimeSpan.FromSeconds(15);
+
+        public TimeSpan KeepAliveMonitorInterval { get; set; } = TimeSpan.FromMilliseconds(500);
 
         public IMqttServerConnectionValidator ConnectionValidator { get; set; }
 

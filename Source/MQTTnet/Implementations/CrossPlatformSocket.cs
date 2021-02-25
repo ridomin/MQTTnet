@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using MQTTnet.Exceptions;
 
 namespace MQTTnet.Implementations
 {
@@ -33,6 +34,9 @@ namespace MQTTnet.Implementations
 
         public bool NoDelay
         {
+            // We cannot use the _NoDelay_ property from the socket because there is an issue in .NET 4.5.2, 4.6.
+            // The decompiled code is: this.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.Debug, value ? 1 : 0);
+            // Which is wrong because the "NoDelay" should be set and not "Debug".
             get => (int)_socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay) > 0;
             set => _socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, value ? 1 : 0);
         }
@@ -48,11 +52,17 @@ namespace MQTTnet.Implementations
             get => _socket.ReceiveBufferSize;
             set => _socket.ReceiveBufferSize = value;
         }
-
+        
         public int SendBufferSize
         {
             get => _socket.SendBufferSize;
             set => _socket.SendBufferSize = value;
+        }
+
+        public int SendTimeout
+        {
+            get => _socket.SendTimeout;
+            set => _socket.SendTimeout = value;
         }
 
         public EndPoint RemoteEndPoint => _socket.RemoteEndPoint;
@@ -69,11 +79,10 @@ namespace MQTTnet.Implementations
             {
 #if NET452 || NET461
                 var clientSocket = await Task.Factory.FromAsync(_socket.BeginAccept, _socket.EndAccept, null).ConfigureAwait(false);
-                return new CrossPlatformSocket(clientSocket);
 #else
                 var clientSocket = await _socket.AcceptAsync().ConfigureAwait(false);
-                return new CrossPlatformSocket(clientSocket);
 #endif
+                return new CrossPlatformSocket(clientSocket);
             }
             catch (ObjectDisposedException)
             {
@@ -115,9 +124,19 @@ namespace MQTTnet.Implementations
                     _networkStream = new NetworkStream(_socket, true);
                 }
             }
+            catch (SocketException socketException)
+            {
+                if (socketException.SocketErrorCode == SocketError.OperationAborted)
+                {
+                    throw new OperationCanceledException();
+                }
+
+                throw new MqttCommunicationException($"Error while connecting with host '{host}:{port}'.", socketException);
+            }
             catch (ObjectDisposedException)
             {
                 // This will happen when _socket.EndConnect gets called by Task library but the socket is already disposed.
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
 
