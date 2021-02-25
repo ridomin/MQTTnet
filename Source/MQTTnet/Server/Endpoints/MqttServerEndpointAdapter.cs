@@ -65,7 +65,7 @@ namespace MQTTnet.Server.Endpoints
                     return;
                 }
 
-                Task.Run(() => TryHandleConnectionAsync(client, cancellationToken), cancellationToken).Forget(_logger);
+                Task.Run(() => TryHandleConnectionAsync(client, cancellationToken), cancellationToken).RunInBackground(_logger);
             }
             catch (Exception exception)
             {
@@ -77,7 +77,7 @@ namespace MQTTnet.Server.Endpoints
         {
             try
             {
-                using (var clientAdapter = new MqttChannelAdapter(channel, new MqttPacketFormatterAdapter(new MqttPacketWriter()), _rootLogger))
+                using (var clientAdapter = new MqttChannelAdapter(channel, new MqttPacketFormatterAdapter(new MqttPacketWriter()), null, _rootLogger))
                 {
                     await _clientHandlerCallback(clientAdapter).ConfigureAwait(false);
                 }
