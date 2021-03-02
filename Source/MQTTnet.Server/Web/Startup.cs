@@ -210,7 +210,7 @@ namespace MQTTnet.Server.Web
 
                         using (var webSocket = await context.WebSockets.AcceptWebSocketAsync(subProtocol).ConfigureAwait(false))
                         {
-                            await mqttServerService.RunWebSocketConnectionAsync(webSocket, context).ConfigureAwait(false);
+                            await mqttServerService.HandleWebSocketConnectionAsync(webSocket, context).ConfigureAwait(false);
                         }
                     }
                     else

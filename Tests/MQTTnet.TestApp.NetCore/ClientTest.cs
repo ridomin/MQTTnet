@@ -16,8 +16,6 @@ namespace MQTTnet.TestApp.NetCore
         {
             try
             {
-                MqttNetConsoleLogger.ForwardToConsole();
-
                 var factory = new MqttFactory();
                 var client = factory.CreateMqttClient();
                 var clientOptions = new MqttClientOptions

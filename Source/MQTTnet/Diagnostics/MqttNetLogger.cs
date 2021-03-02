@@ -28,10 +28,7 @@ namespace MQTTnet.Diagnostics
 
         public void Publish(MqttNetLogLevel level, string source, string message, object[] parameters, Exception exception)
         {
-            var hasLocalListeners = LogMessagePublished != null;
-            var hasGlobalListeners = MqttNetGlobalLogger.HasListeners;
-
-            if (!hasLocalListeners && !hasGlobalListeners)
+            if (LogMessagePublished == null)
             {
                 return;
             }
@@ -58,16 +55,8 @@ namespace MQTTnet.Diagnostics
                 Message = message,
                 Exception = exception
             };
-
-            if (hasGlobalListeners)
-            {
-                MqttNetGlobalLogger.Publish(logMessage);
-            }
-
-            if (hasLocalListeners)
-            {
-                LogMessagePublished?.Invoke(this, new MqttNetLogMessagePublishedEventArgs(logMessage));
-            }
+            
+            LogMessagePublished?.Invoke(this, new MqttNetLogMessagePublishedEventArgs(logMessage));
         }
     }
 }

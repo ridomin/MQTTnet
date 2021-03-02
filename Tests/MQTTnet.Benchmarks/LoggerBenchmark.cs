@@ -18,8 +18,6 @@ namespace MQTTnet.Benchmarks
         {
             _logger = new MqttNetLogger();
             _childLogger = _logger.CreateScopedLogger("child");
-
-            MqttNetGlobalLogger.LogMessagePublished += OnLogMessagePublished;
         }
 
         private void OnLogMessagePublished(object sender, MqttNetLogMessagePublishedEventArgs eventArgs)

@@ -4,11 +4,12 @@ using System.Net.Sockets;
 
 namespace MQTTnet.AspNetCore.Client.Tcp
 {
-    public class SocketReceiver
+    public sealed class SocketReceiver
     {
-        private readonly Socket _socket;
-        private readonly SocketAsyncEventArgs _eventArgs = new SocketAsyncEventArgs();
-        private readonly SocketAwaitable _awaitable;
+        readonly SocketAsyncEventArgs _eventArgs = new SocketAsyncEventArgs();
+        
+        readonly Socket _socket;
+        readonly SocketAwaitable _awaitable;
 
         public SocketReceiver(Socket socket, PipeScheduler scheduler)
         {
@@ -26,6 +27,7 @@ namespace MQTTnet.AspNetCore.Client.Tcp
             var segment = buffer.GetArray();
             _eventArgs.SetBuffer(segment.Array, segment.Offset, segment.Count);
 #endif
+            
             if (!_socket.ReceiveAsync(_eventArgs))
             {
                 _awaitable.Complete(_eventArgs.BytesTransferred, _eventArgs.SocketError);

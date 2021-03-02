@@ -10,8 +10,6 @@ namespace MQTTnet.TestApp.NetCore
     {
         public static async Task RunAsync()
         {
-            MqttNetConsoleLogger.ForwardToConsole();
-
             var factory = new MqttFactory();
             var server = factory.CreateMqttServer();
             var client = factory.CreateMqttClient();

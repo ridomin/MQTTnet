@@ -38,7 +38,7 @@ namespace MQTTnet.Benchmarks
                     BenchmarkRunner.Run<ChannelAdapterBenchmark>();
                     break;
                 case '6':
-                    BenchmarkRunner.Run<MqttTcpChannelBenchmark>();
+                    //BenchmarkRunner.Run<MqttTcpChannelBenchmark>();
                     break;
                 case '7':
                     BenchmarkRunner.Run<TcpPipesBenchmark>();

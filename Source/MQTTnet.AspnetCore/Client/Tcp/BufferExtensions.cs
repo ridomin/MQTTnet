@@ -16,6 +16,7 @@ namespace MQTTnet.AspNetCore.Client.Tcp
             {
                 throw new InvalidOperationException("Buffer backed by array was expected");
             }
+            
             return result;
         }
     }

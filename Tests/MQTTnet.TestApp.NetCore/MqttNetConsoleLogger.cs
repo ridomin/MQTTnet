@@ -7,13 +7,7 @@ namespace MQTTnet.TestApp.NetCore
     public static class MqttNetConsoleLogger
     {
         static readonly object _lock = new object();
-
-        public static void ForwardToConsole()
-        {
-            MqttNetGlobalLogger.LogMessagePublished -= PrintToConsole;
-            MqttNetGlobalLogger.LogMessagePublished += PrintToConsole;
-        }
-
+        
         public static void PrintToConsole(string message, ConsoleColor color)
         {
             lock (_lock)

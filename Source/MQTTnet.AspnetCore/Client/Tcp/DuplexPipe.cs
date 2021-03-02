@@ -2,7 +2,7 @@
 
 namespace MQTTnet.AspNetCore.Client.Tcp
 {
-    public class DuplexPipe : IDuplexPipe
+    public sealed class DuplexPipe : IDuplexPipe
     {
         public DuplexPipe(PipeReader reader, PipeWriter writer)
         {

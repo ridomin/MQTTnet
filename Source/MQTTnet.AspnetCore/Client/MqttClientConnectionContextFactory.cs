@@ -20,9 +20,10 @@ namespace MQTTnet.AspNetCore.Client
                         var endpoint = new DnsEndPoint(tcpOptions.Server, tcpOptions.GetPort());
                         var tcpConnection = new TcpConnection(endpoint);
 
-                        var writer = new SpanBasedMqttPacketWriter();
-                        var formatter = new MqttPacketFormatterAdapter(options.ProtocolVersion, writer);
-                        return new MqttConnectionContext(formatter, tcpConnection);
+                        var packetWriter = new SpanBasedMqttPacketWriter();
+                        var packetFormatter = new MqttPacketFormatterAdapter(options.ProtocolVersion, packetWriter);
+                        
+                        return new MqttConnectionContext(packetFormatter, tcpConnection);
                     }
                 default:
                     {

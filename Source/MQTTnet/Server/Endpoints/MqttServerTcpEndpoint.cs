@@ -45,15 +45,18 @@ namespace MQTTnet.Server.Endpoints
             
             _localEndPoint = new IPEndPoint(_options.BoundAddress, _options.Port);
 
-            _listenerSocket = !_options.AddressFamily.HasValue ? new CrossPlatformSocket() : new CrossPlatformSocket(_options.AddressFamily.Value);
+            _listenerSocket = new CrossPlatformSocket(_options.AddressFamily)
+            {
+                NoDelay = _options.NoDelay,
+                ReuseAddress = _options.ReuseAddress
+            };
+
             _listenerSocket.Bind(_localEndPoint);
-            _listenerSocket.NoDelay = _options.NoDelay;
-            _listenerSocket.ReuseAddress = _options.ReuseAddress;
             _listenerSocket.Listen(_options.ConnectionBacklog);
 
             _logger.Info($"Starting TCP listener for {_localEndPoint} TLS={_options.TlsOptions != null}.");
 
-            Task.Run(() => AcceptClientsAsync(_cancellationToken.Token), _cancellationToken.Token).RunInBackground();
+            AcceptClientsAsync(_cancellationToken.Token).RunInBackground();
 
             return PlatformAbstractionLayer.CompletedTask;
         }
@@ -68,7 +71,7 @@ namespace MQTTnet.Server.Endpoints
                     continue;
                 }
 
-                Task.Run(() => AcceptClientAsync(clientSocket, cancellationToken), cancellationToken).RunInBackground();
+                AcceptClientAsync(clientSocket, cancellationToken).RunInBackground();
             }
         }
 

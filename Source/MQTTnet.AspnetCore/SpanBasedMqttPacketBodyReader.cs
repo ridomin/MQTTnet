@@ -6,7 +6,7 @@ using System.Text;
 
 namespace MQTTnet.AspNetCore
 {
-    public class SpanBasedMqttPacketBodyReader : IMqttPacketBodyReader
+    public sealed class SpanBasedMqttPacketBodyReader : IMqttPacketBodyReader
     {
         ReadOnlyMemory<byte> _buffer;
 

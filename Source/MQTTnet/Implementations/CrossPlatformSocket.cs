@@ -14,16 +14,18 @@ namespace MQTTnet.Implementations
 
         NetworkStream _networkStream;
 
-        public CrossPlatformSocket(AddressFamily addressFamily)
+        public CrossPlatformSocket(AddressFamily? addressFamily = null)
         {
-            _socket = new Socket(addressFamily, SocketType.Stream, ProtocolType.Tcp);
-        }
-
-        public CrossPlatformSocket()
-        {
-            // Having this constructor is important because avoiding the address family as parameter
-            // will make use of dual mode in the .net framework.
-            _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            if (!addressFamily.HasValue)
+            {
+                // Having this constructor is important because avoiding the address family as parameter
+                // will make use of dual mode in the .net framework.
+                _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            }
+            else
+            {
+                _socket = new Socket(addressFamily.Value, SocketType.Stream, ProtocolType.Tcp);    
+            }
         }
 
         public CrossPlatformSocket(Socket socket)
@@ -186,7 +188,13 @@ namespace MQTTnet.Implementations
 
         public void Dispose()
         {
+            // To assure that all data is sent and received on a connected socket before it is closed,
+            // an application should use shutdown to close connection before calling
+            _socket?.Shutdown(SocketShutdown.Both);
+            
+            _networkStream?.Flush();
             _networkStream?.Dispose();
+            
             _socket?.Dispose();
         }
 

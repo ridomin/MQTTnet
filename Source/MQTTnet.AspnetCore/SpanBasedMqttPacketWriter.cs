@@ -6,19 +6,19 @@ using System.Text;
 
 namespace MQTTnet.AspNetCore
 {
-    public class SpanBasedMqttPacketWriter : IMqttPacketWriter
+    public sealed class SpanBasedMqttPacketWriter : IMqttPacketWriter
     {
         readonly ArrayPool<byte> _pool = ArrayPool<byte>.Create();
 
+        byte[] _buffer;
+        int _position;
+        
         public SpanBasedMqttPacketWriter()
         {
             Reset(0);
         }
 
-        byte[] _buffer;
-        int _position;
-
-        public int Length { get; set; }
+        public int Length { get; private set; }
 
         public void FreeBuffer()
         {
@@ -45,6 +45,7 @@ namespace MQTTnet.AspNetCore
         public void Write(byte value)
         {
             GrowIfNeeded(1);
+            
             _buffer[_position] = value;
             Commit(1);
         }
@@ -62,6 +63,7 @@ namespace MQTTnet.AspNetCore
             if (propertyWriter == null) throw new ArgumentNullException(nameof(propertyWriter));
 
             GrowIfNeeded(propertyWriter.Length);
+            
             Write(propertyWriter.GetBuffer(), 0, propertyWriter.Length);
         }
 

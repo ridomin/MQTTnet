@@ -41,37 +41,6 @@ namespace MQTTnet.TestApp.AspNetCore2
         {
             app.UseConnections(c => c.MapMqtt("/mqtt"));
 #endif
-
-            app.UseMqttServer(server =>
-            {
-                server.StartedHandler = new MqttServerStartedHandlerDelegate(async args =>
-                {
-                    var frameworkName = GetType().Assembly.GetCustomAttribute<TargetFrameworkAttribute>()?
-                        .FrameworkName;
-
-                    var msg = new MqttApplicationMessageBuilder()
-                        .WithPayload($"Mqtt hosted on {frameworkName} is awesome")
-                        .WithTopic("message");
-
-                    while (true)
-                    {
-                        try
-                        {
-                            await server.PublishAsync(msg.Build());
-                            msg.WithPayload($"Mqtt hosted on {frameworkName} is still awesome at {DateTime.Now}");
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e);
-                        }
-                        finally
-                        {
-                            await Task.Delay(TimeSpan.FromSeconds(2));
-                        }
-                    }
-                });
-            });
-
             app.Use((context, next) =>
             {
                 if (context.Request.Path == "/")
@@ -83,7 +52,6 @@ namespace MQTTnet.TestApp.AspNetCore2
             });
 
             app.UseStaticFiles();
-
 
             app.UseStaticFiles(new StaticFileOptions
             {

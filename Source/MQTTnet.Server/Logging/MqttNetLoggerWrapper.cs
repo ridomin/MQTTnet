@@ -7,9 +7,9 @@ namespace MQTTnet.Server.Logging
 {
     public sealed class MqttNetLoggerWrapper : IMqttNetLogger
     {
-        readonly ILogger<MqttServer> _logger;
+        readonly ILogger<MqttNetLoggerWrapper> _logger;
 
-        public MqttNetLoggerWrapper(ILogger<MqttServer> logger)
+        public MqttNetLoggerWrapper(ILogger<MqttNetLoggerWrapper> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -26,28 +26,24 @@ namespace MQTTnet.Server.Logging
             var convertedLogLevel = ConvertLogLevel(level);
             _logger.Log(convertedLogLevel, exception, message, parameters);
 
-            var logMessagePublishedEvent = LogMessagePublished;
-            if (logMessagePublishedEvent != null)
+            if (LogMessagePublished == null)
             {
-                var logMessage = new MqttNetLogMessage
-                {
-                    Timestamp = DateTime.UtcNow,
-                    ThreadId = Thread.CurrentThread.ManagedThreadId,
-                    Source = source,
-                    Level = level,
-                    Message = message,
-                    Exception = exception
-                };
-
-                logMessagePublishedEvent.Invoke(this, new MqttNetLogMessagePublishedEventArgs(logMessage));
+                return;
             }
-        }
+            
+            var logMessage = new MqttNetLogMessage
+            {
+                Timestamp = DateTime.UtcNow,
+                ThreadId = Thread.CurrentThread.ManagedThreadId,
+                Source = source,
+                Level = level,
+                Message = message,
+                Exception = exception
+            };
 
-        public void Publish(MqttNetLogLevel logLevel, string message, object[] parameters, Exception exception)
-        {
-            Publish(logLevel, null, message, parameters, exception);
+            LogMessagePublished?.Invoke(this, new MqttNetLogMessagePublishedEventArgs(logMessage));
         }
-
+        
         static LogLevel ConvertLogLevel(MqttNetLogLevel logLevel)
         {
             switch (logLevel)

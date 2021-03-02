@@ -59,7 +59,7 @@ namespace MQTTnet.AspNetCore.Extensions
             return true;
         }
 
-        private static ReadOnlyMemory<byte> GetMemory(this in ReadOnlySequence<byte> input)
+        static ReadOnlyMemory<byte> GetMemory(this in ReadOnlySequence<byte> input)
         {
             if (input.IsSingleSegment)
             {
@@ -70,7 +70,7 @@ namespace MQTTnet.AspNetCore.Extensions
             return input.ToArray();
         }
 
-        private static bool TryReadBodyLength(ref ReadOnlySequence<byte> input, out int headerLength, out int bodyLength)
+        static bool TryReadBodyLength(ref ReadOnlySequence<byte> input, out int headerLength, out int bodyLength)
         {
             // Alorithm taken from https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/errata01/os/mqtt-v3.1.1-errata01-os-complete.html.
             var multiplier = 1;

@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet.Client.Subscribing;
+using MQTTnet.Client.Unsubscribing;
 using MQTTnet.Implementations;
 
 namespace MQTTnet.Extensions.Rpc
@@ -18,11 +19,6 @@ namespace MQTTnet.Extensions.Rpc
         readonly IMqttClient _mqttClient;
         readonly IMqttRpcClientOptions _options;
         readonly RpcAwareApplicationMessageReceivedHandler _applicationMessageReceivedHandler;
-
-        [Obsolete("Use MqttRpcClient(IMqttClient mqttClient, IMqttRpcClientOptions options).")]
-        public MqttRpcClient(IMqttClient mqttClient) : this(mqttClient, new MqttRpcClientOptions())
-        {
-        }
 
         public MqttRpcClient(IMqttClient mqttClient, IMqttRpcClientOptions options)
         {
@@ -55,7 +51,7 @@ namespace MQTTnet.Extensions.Rpc
                 }
             }
         }
-
+        
         public async Task<byte[]> ExecuteAsync(string methodName, byte[] payload, MqttQualityOfServiceLevel qualityOfServiceLevel, CancellationToken cancellationToken)
         {
             if (methodName == null) throw new ArgumentNullException(nameof(methodName));
@@ -112,7 +108,7 @@ namespace MQTTnet.Extensions.Rpc
                 await _mqttClient.SubscribeAsync(subscribeOptions, cancellationToken).ConfigureAwait(false);
                 await _mqttClient.PublishAsync(requestMessage, cancellationToken).ConfigureAwait(false);
 
-                using (cancellationToken.Register(() => { promise.TrySetCanceled(); }))
+                using (cancellationToken.Register(() => promise.TrySetCanceled()))
                 {
                     return await promise.Task.ConfigureAwait(false);
                 }
@@ -121,7 +117,8 @@ namespace MQTTnet.Extensions.Rpc
             {
                 _waitingCalls.TryRemove(responseTopic, out _);
 
-                await _mqttClient.UnsubscribeAsync(responseTopic).ConfigureAwait(false);
+                var unsubscribeOptions = new MqttClientUnsubscribeOptionsBuilder().WithTopicFilter(responseTopic).Build();
+                await _mqttClient.UnsubscribeAsync(unsubscribeOptions, cancellationToken).ConfigureAwait(false);
             }
         }
 

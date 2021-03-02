@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace MQTTnet.Server.Mqtt
 {
-    public class MqttServerService
+    public sealed class MqttServerService
     {
         readonly ILogger<MqttServerService> _logger;
 
@@ -35,7 +35,8 @@ namespace MQTTnet.Server.Mqtt
         readonly MqttSubscriptionInterceptor _mqttSubscriptionInterceptor;
         readonly MqttUnsubscriptionInterceptor _mqttUnsubscriptionInterceptor;
         readonly PythonScriptHostService _pythonScriptHostService;
-        readonly MqttWebSocketServerAdapter _webSocketServerAdapter;
+        
+        readonly MqttWebSocketEndpoint _webSocketEndpoint = new MqttWebSocketEndpoint();
 
         public MqttServerService(
             MqttSettingsModel mqttSettings,
@@ -64,18 +65,7 @@ namespace MQTTnet.Server.Mqtt
             _mqttServerStorage = mqttServerStorage ?? throw new ArgumentNullException(nameof(mqttServerStorage));
             _pythonScriptHostService = pythonScriptHostService ?? throw new ArgumentNullException(nameof(pythonScriptHostService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            _webSocketServerAdapter = new MqttWebSocketServerAdapter(mqttFactory.Logger);
-
-            // var adapters = new List<IMqttServerAdapter>
-            // {
-            //     new MqttTcpServerAdapter(mqttFactory.Logger)
-            //     {
-            //         TreatSocketOpeningErrorAsWarning = true // Opening other ports than for HTTP is not allows in Azure App Services.
-            //     },
-            //     _webSocketServerAdapter
-            // };
-
+            
             _mqttServer = mqttFactory.CreateMqttServer();
         }
 
@@ -95,9 +85,9 @@ namespace MQTTnet.Server.Mqtt
             _logger.LogInformation("MQTT server started.");
         }
 
-        public Task RunWebSocketConnectionAsync(WebSocket webSocket, HttpContext httpContext)
+        public Task HandleWebSocketConnectionAsync(WebSocket webSocket, HttpContext httpContext)
         {
-            return _webSocketServerAdapter.RunWebSocketConnectionAsync(webSocket, httpContext);
+            return _webSocketEndpoint.HandleWebSocketConnectionAsync(webSocket, httpContext);
         }
 
         public Task<IList<IMqttClientStatus>> GetClientStatusAsync()
@@ -184,7 +174,15 @@ namespace MQTTnet.Server.Mqtt
                 .WithUnsubscriptionInterceptor(_mqttUnsubscriptionInterceptor)
                 .WithStorage(_mqttServerStorage);
 
-            // Configure unencrypted connections
+            if (_settings.EnablePersistentSessions)
+            {
+                options.WithPersistentSessions();
+            }
+            
+            // Configure web socket endpoint.
+            options.WithEndpoint(_webSocketEndpoint);
+            
+            // Configure unencrypted endpoint
             if (_settings.TcpEndPoint.Enabled)
             {
                 options.WithTcpEndpoint("default", o =>
@@ -211,7 +209,7 @@ namespace MQTTnet.Server.Mqtt
                 });
             }
 
-            // Configure encrypted connections
+            // Configure encrypted endpoint
             if (_settings.EncryptedTcpEndPoint.Enabled)
             {
                 options.WithTcpEndpoint("default_secure", o =>
@@ -258,11 +256,6 @@ namespace MQTTnet.Server.Mqtt
                 });
             }
             
-            if (_settings.EnablePersistentSessions)
-            {
-                options.WithPersistentSessions();
-            }
-
             return options.Build();
         }
     }
