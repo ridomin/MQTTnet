@@ -6,18 +6,22 @@ using MQTTnet.Adapter;
 using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using MQTTnet.Protocol;
+using MQTTnet.Server.Endpoints;
 
 namespace MQTTnet.Server
 {
-    public class MqttConnectionValidatorContext
+    public sealed class MqttConnectionValidatorContext
     {
-        private readonly MqttConnectPacket _connectPacket;
-        private readonly IMqttChannelAdapter _clientAdapter;
+        readonly MqttConnectPacket _connectPacket;
+        readonly IMqttChannelAdapter _clientAdapter;
+        readonly HandleClientConnectionContext _context;
 
-        public MqttConnectionValidatorContext(MqttConnectPacket connectPacket, IMqttChannelAdapter clientAdapter, IDictionary<object, object> sessionItems)
+        public MqttConnectionValidatorContext(MqttConnectPacket connectPacket, IMqttChannelAdapter clientAdapter, HandleClientConnectionContext context, IDictionary<object, object> sessionItems)
         {
-            _connectPacket = connectPacket;
+            _connectPacket = connectPacket ?? throw new ArgumentNullException(nameof(connectPacket));
             _clientAdapter = clientAdapter ?? throw new ArgumentNullException(nameof(clientAdapter));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            
             SessionItems = sessionItems;
         }
 
@@ -28,6 +32,8 @@ namespace MQTTnet.Server
         public string ClientId => _connectPacket.ClientId;
 
         public string Endpoint => _clientAdapter.Endpoint;
+
+        public string OriginEndpointId => _context.OriginEndpoint.Id;
 
         public bool IsSecureConnection => _clientAdapter.IsSecureConnection;
 

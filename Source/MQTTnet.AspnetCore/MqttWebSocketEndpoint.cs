@@ -39,7 +39,7 @@ namespace MQTTnet.AspNetCore
                     
                 using (var mqttChannel = new MqttWebSocketChannel(webSocket, endpoint, isSecureConnection, clientCertificate))
                 {
-                    var context = new HandleClientConnectionContext(mqttChannel);
+                    var context = new HandleClientConnectionContext(mqttChannel, this);
                     await clientConnectionHandler(context).ConfigureAwait(false);    
                 }
             }

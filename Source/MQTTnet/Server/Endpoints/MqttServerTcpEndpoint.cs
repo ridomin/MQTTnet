@@ -111,7 +111,7 @@ namespace MQTTnet.Server.Endpoints
                 }
 
                 var channel = new MqttTcpChannel(networkStream, remoteEndPoint, clientCertificate);
-                var context = new HandleClientConnectionContext(channel);
+                var context = new HandleClientConnectionContext(channel, this);
                 await _clientConnectionHandler.Invoke(context).ConfigureAwait(false);
             }
             catch (Exception exception)

@@ -244,7 +244,7 @@ namespace MQTTnet.Server
         {
             using (var channelAdapter = new MqttChannelAdapter(handleClientConnectionContext.Channel, new MqttPacketFormatterAdapter(new MqttPacketWriter()), null, _rootLogger))
             {
-                await _clientSessionsManager.HandleClientConnectionAsync(channelAdapter, CancellationToken.None).ConfigureAwait(false);    
+                await _clientSessionsManager.HandleClientConnectionAsync(channelAdapter, handleClientConnectionContext, CancellationToken.None).ConfigureAwait(false);    
             }
         }
 

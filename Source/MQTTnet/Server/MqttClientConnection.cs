@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet.Client.Disconnecting;
+using MQTTnet.Server.Endpoints;
 
 namespace MQTTnet.Server
 {
@@ -28,6 +29,7 @@ namespace MQTTnet.Server
         readonly MqttClientSessionsManager _sessionsManager;
 
         readonly IMqttNetScopedLogger _logger;
+        readonly HandleClientConnectionContext _handleClientConnectionContext;
         readonly IMqttServerOptions _serverOptions;
 
         readonly IMqttChannelAdapter _channelAdapter;
@@ -45,7 +47,9 @@ namespace MQTTnet.Server
         long _sentApplicationMessagesCount;
         MqttClientDisconnectReason _disconnectReason;
 
-        public MqttClientConnection(MqttConnectPacket connectPacket,
+        public MqttClientConnection(
+            HandleClientConnectionContext handleClientConnectionContext,
+            MqttConnectPacket connectPacket,
             IMqttChannelAdapter channelAdapter,
             MqttClientSession session,
             MqttConnectionValidatorContext connectionValidatorContext,
@@ -54,7 +58,7 @@ namespace MQTTnet.Server
             IMqttRetainedMessagesManager retainedMessagesManager,
             IMqttNetLogger logger)
         {
-            Session = session ?? throw new ArgumentNullException(nameof(session));
+            _handleClientConnectionContext = handleClientConnectionContext ?? throw new ArgumentNullException(nameof(handleClientConnectionContext));
             _serverOptions = serverOptions ?? throw new ArgumentNullException(nameof(serverOptions));
             _sessionsManager = sessionsManager ?? throw new ArgumentNullException(nameof(sessionsManager));
             _retainedMessagesManager = retainedMessagesManager ?? throw new ArgumentNullException(nameof(retainedMessagesManager));
@@ -63,8 +67,10 @@ namespace MQTTnet.Server
             _connectionValidatorContext = connectionValidatorContext ?? throw new ArgumentNullException(nameof(connectionValidatorContext));
             _dataConverter = _channelAdapter.PacketFormatterAdapter.DataConverter;
             _endpoint = _channelAdapter.Endpoint;
+            
             ConnectPacket = connectPacket ?? throw new ArgumentNullException(nameof(connectPacket));
-
+            Session = session ?? throw new ArgumentNullException(nameof(session));
+            
             if (logger == null) throw new ArgumentNullException(nameof(logger));
             _logger = logger.CreateScopedLogger(nameof(MqttClientConnection));
 
@@ -131,6 +137,7 @@ namespace MQTTnet.Server
         {
             status.ClientId = ClientId;
             status.Endpoint = _endpoint;
+            status.OriginEndpointId = _handleClientConnectionContext.OriginEndpoint.Id;
             status.ProtocolVersion = _channelAdapter.PacketFormatterAdapter.ProtocolVersion;
 
             status.ReceivedApplicationMessagesCount = Interlocked.Read(ref _receivedApplicationMessagesCount);

@@ -21,6 +21,8 @@ namespace MQTTnet.Server.Status
         public string ClientId { get; set; }
 
         public string Endpoint { get; set; }
+        
+        public string OriginEndpointId { get; set; }
 
         public MqttProtocolVersion ProtocolVersion { get; set; }
 
