@@ -1,28 +1,43 @@
 ﻿using System;
-using System.Net;
-using System.Net.Security;
-using System.Security.Authentication;
-using MQTTnet.Certificates;
 using System.Threading.Tasks;
+using MQTTnet.Server.Endpoints;
 
-#if !WINDOWS_UWP
-using System.Security.Cryptography.X509Certificates;
-#endif
-
-// ReSharper disable UnusedMember.Global
 namespace MQTTnet.Server
 {
     public class MqttServerOptionsBuilder
     {
         readonly MqttServerOptions _options = new MqttServerOptions();
         
-        public MqttServerOptionsBuilder WithConnectionBacklog(int value)
+        public MqttServerOptionsBuilder WithDefaultTcpEndpoint(int port = 1883)
         {
-            _options.DefaultEndpointOptions.ConnectionBacklog = value;
-            _options.TlsEndpointOptions.ConnectionBacklog = value;
+            return WithTcpEndpoint("default", o =>
+            {
+                o.WithPort(port);
+            });
+        }
+        
+        public MqttServerOptionsBuilder WithEndpoint(IMqttServerEndpoint endpoint)
+        {
+            if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
+            
+            _options.Endpoints.Add(endpoint);
             return this;
         }
+        
+        public MqttServerOptionsBuilder WithTcpEndpoint(string id, Action<MqttServerTcpEndpointOptionsBuilder> optionsBuilder)
+        {
+            if (optionsBuilder == null) throw new ArgumentNullException(nameof(optionsBuilder));
+            
+            var endpointOptionsBuilderInstance = new MqttServerTcpEndpointOptionsBuilder();
+            optionsBuilder.Invoke(endpointOptionsBuilderInstance);
 
+            var endpoint = new MqttServerTcpEndpoint(id, endpointOptionsBuilderInstance.Build());
+
+            _options.Endpoints.Add(endpoint);
+            
+            return this;
+        }
+        
         public MqttServerOptionsBuilder WithMaxPendingMessagesPerClient(int value)
         {
             _options.MaxPendingMessagesPerClient = value;
@@ -34,113 +49,7 @@ namespace MQTTnet.Server
             _options.DefaultCommunicationTimeout = value;
             return this;
         }
-
-        public MqttServerOptionsBuilder WithDefaultEndpoint()
-        {
-            _options.DefaultEndpointOptions.IsEnabled = true;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithDefaultEndpointPort(int value)
-        {
-            _options.DefaultEndpointOptions.Port = value;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithDefaultEndpointBoundIPAddress(IPAddress value)
-        {
-            _options.DefaultEndpointOptions.BoundInterNetworkAddress = value ?? IPAddress.Any;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithDefaultEndpointBoundIPV6Address(IPAddress value)
-        {
-            _options.DefaultEndpointOptions.BoundInterNetworkV6Address = value ?? IPAddress.Any;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithoutDefaultEndpoint()
-        {
-            _options.DefaultEndpointOptions.IsEnabled = false;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithEncryptedEndpoint()
-        {
-            _options.TlsEndpointOptions.IsEnabled = true;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithEncryptedEndpointPort(int value)
-        {
-            _options.TlsEndpointOptions.Port = value;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithEncryptedEndpointBoundIPAddress(IPAddress value)
-        {
-            _options.TlsEndpointOptions.BoundInterNetworkAddress = value;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithEncryptedEndpointBoundIPV6Address(IPAddress value)
-        {
-            _options.TlsEndpointOptions.BoundInterNetworkV6Address = value;
-            return this;
-        }
-
-#if !WINDOWS_UWP
-        public MqttServerOptionsBuilder WithEncryptionCertificate(byte[] value, IMqttServerCertificateCredentials credentials = null)
-        {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-
-            _options.TlsEndpointOptions.CertificateProvider = new BlobCertificateProvider(value)
-            {
-                Password = credentials?.Password
-            };
-
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithEncryptionCertificate(X509Certificate2 certificate)
-        {
-            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
-
-            _options.TlsEndpointOptions.CertificateProvider = new X509CertificateProvider(certificate);
-            return this;
-        }
-#endif
-
-        public MqttServerOptionsBuilder WithEncryptionSslProtocol(SslProtocols value)
-        {
-            _options.TlsEndpointOptions.SslProtocol = value;
-            return this;
-        }
-
-#if !WINDOWS_UWP
-        public MqttServerOptionsBuilder WithClientCertificate(RemoteCertificateValidationCallback validationCallback = null, bool checkCertificateRevocation = false)
-        {
-            _options.TlsEndpointOptions.ClientCertificateRequired = true;
-            _options.TlsEndpointOptions.CheckCertificateRevocation = checkCertificateRevocation;
-            _options.TlsEndpointOptions.RemoteCertificateValidationCallback = validationCallback;
-            return this;
-        }
-#endif
-
-        public MqttServerOptionsBuilder WithoutEncryptedEndpoint()
-        {
-            _options.TlsEndpointOptions.IsEnabled = false;
-            return this;
-        }
-
-#if !WINDOWS_UWP
-        public MqttServerOptionsBuilder WithRemoteCertificateValidationCallback(RemoteCertificateValidationCallback value)
-        {
-            _options.TlsEndpointOptions.RemoteCertificateValidationCallback = value;
-            return this;
-        }
-#endif
-
+        
         public MqttServerOptionsBuilder WithStorage(IMqttServerStorage value)
         {
             _options.Storage = value;
@@ -240,18 +149,6 @@ namespace MQTTnet.Server
         public MqttServerOptionsBuilder WithUndeliveredMessageInterceptor(Action<MqttApplicationMessageInterceptorContext> value)
         {
             _options.UndeliveredMessageInterceptor = new MqttServerApplicationMessageInterceptorDelegate(value);
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithDefaultEndpointReuseAddress()
-        {
-            _options.DefaultEndpointOptions.ReuseAddress = true;
-            return this;
-        }
-
-        public MqttServerOptionsBuilder WithTlsEndpointReuseAddress()
-        {
-            _options.TlsEndpointOptions.ReuseAddress = true;
             return this;
         }
 

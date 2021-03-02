@@ -10,7 +10,7 @@ namespace MQTTnet.Server.Mqtt
 {
     public class CustomMqttFactory
     {
-        private readonly MqttFactory _mqttFactory;
+        readonly MqttFactory _mqttFactory;
 
         public CustomMqttFactory(MqttSettingsModel settings, ILogger<MqttServer> logger)
         {
@@ -38,11 +38,9 @@ namespace MQTTnet.Server.Mqtt
         
         public IMqttNetLogger Logger { get; }
 
-        public IMqttServer CreateMqttServer(List<IMqttServerAdapter> adapters)
+        public IMqttServer CreateMqttServer()
         {
-            if (adapters == null) throw new ArgumentNullException(nameof(adapters));
-
-            return _mqttFactory.CreateMqttServer(adapters);
+            return _mqttFactory.CreateMqttServer();
         }
     }
 }

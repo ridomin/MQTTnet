@@ -1270,7 +1270,7 @@ namespace MQTTnet.Tests
                 {
                 }
 
-                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultEndpointPort(testEnvironment.ServerPort).Build());
+                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultTcpEndpoint(testEnvironment.ServerPort).Build());
                 await testEnvironment.ConnectClientAsync();
             }
         }

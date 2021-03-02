@@ -7,87 +7,89 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using MQTTnet.Channel;
 using MQTTnet.Diagnostics;
 using MQTTnet.Implementations;
+using MQTTnet.Internal;
 
 namespace MQTTnet.Server.Endpoints
 {
     public sealed class MqttServerTcpEndpoint : IMqttServerEndpoint
     {
-        IMqttServerOptions _options;
-        CrossPlatformSocket _socket;
+        readonly MqttServerTcpEndpointOptions _options;
+        
+        CrossPlatformSocket _listenerSocket;
         IMqttNetScopedLogger _logger;
         IPEndPoint _localEndPoint;
-
-        public string Id { get; set; }
         
-        public int Port { get; set; } = 1883;
+        CancellationTokenSource _cancellationToken;
+        Func<HandleClientConnectionContext, Task> _clientConnectionHandler;
 
-        public int ConnectionBacklog { get; set; } = 10;
-
-        public bool NoDelay { get; set; } = true;
-
-#if WINDOWS_UWP
-        public int BufferSize { get; set; } = 4096;
-#endif
-
-        public IPAddress BoundAddress { get; set; } = IPAddress.Any;
-
-        /// <summary>
-        /// This requires admin permissions on Linux.
-        /// </summary>
-        public bool ReuseAddress { get; set; }
-
-        /// <summary>
-        /// Leaving this _null_ will use a dual mode socket.
-        /// </summary>
-        public AddressFamily? AddressFamily { get; set; }
-
-        public MqttServerTcpEndpointTlsOptions TlsOptions { get; set; }
-
-        public void Open(IMqttServerOptions options, IMqttNetLogger logger)
+        public MqttServerTcpEndpoint(string id, MqttServerTcpEndpointOptions options)
         {
-            if (logger == null) throw new ArgumentNullException(nameof(logger));
-            _logger = logger.CreateScopedLogger(nameof(MqttServerTcpEndpoint));
-
+            Id = id ?? throw new ArgumentNullException(nameof(id));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+        }
+        
+        public string Id { get; }
+        
+        public Task OpenEndpointAsync(OpenEndpointContext context, CancellationToken cancellationToken)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            _logger = context.Logger.CreateScopedLogger(nameof(MqttServerTcpEndpoint));
+         
+            Dispose();
 
-            _localEndPoint = new IPEndPoint(BoundAddress, Port);
+            _clientConnectionHandler = context.ClientConnectionHandler;
+            
+            _cancellationToken = new CancellationTokenSource();
+            
+            _localEndPoint = new IPEndPoint(_options.BoundAddress, _options.Port);
 
-            _socket = !AddressFamily.HasValue ? new CrossPlatformSocket() : new CrossPlatformSocket(AddressFamily.Value);
-            _socket.Bind(_localEndPoint);
-            _socket.NoDelay = NoDelay;
-            _socket.ReuseAddress = ReuseAddress;
-            _socket.Listen(ConnectionBacklog);
+            _listenerSocket = !_options.AddressFamily.HasValue ? new CrossPlatformSocket() : new CrossPlatformSocket(_options.AddressFamily.Value);
+            _listenerSocket.Bind(_localEndPoint);
+            _listenerSocket.NoDelay = _options.NoDelay;
+            _listenerSocket.ReuseAddress = _options.ReuseAddress;
+            _listenerSocket.Listen(_options.ConnectionBacklog);
 
-            _logger.Info($"Starting TCP listener for {_localEndPoint} TLS={TlsOptions != null}.");
+            _logger.Info($"Starting TCP listener for {_localEndPoint} TLS={_options.TlsOptions != null}.");
+
+            Task.Run(() => AcceptClientsAsync(_cancellationToken.Token), _cancellationToken.Token).RunInBackground();
+
+            return PlatformAbstractionLayer.CompletedTask;
         }
 
-        public async Task<IMqttChannel> AcceptAsync(CancellationToken cancellationToken)
+        async Task AcceptClientsAsync(CancellationToken cancellationToken)
         {
-            Stream stream = null;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                var clientSocket = await _listenerSocket.AcceptAsync().ConfigureAwait(false);
+                if (clientSocket == null)
+                {
+                    continue;
+                }
+
+                Task.Run(() => AcceptClientAsync(clientSocket, cancellationToken), cancellationToken).RunInBackground();
+            }
+        }
+
+        async Task AcceptClientAsync(CrossPlatformSocket clientSocket, CancellationToken cancellationToken)
+        {
+            Stream networkStream = null;
+            SslStream sslStream = null;
             X509Certificate2 clientCertificate = null;
 
             try
             {
-                var client = await _socket.AcceptAsync().ConfigureAwait(false);
-                if (client == null)
-                {
-                    return null;
-                }
+                clientSocket.NoDelay = _options.NoDelay;
 
-                client.NoDelay = NoDelay;
-
-                var remoteEndPoint = client.RemoteEndPoint.ToString();
-                stream = client.GetStream();
+                var remoteEndPoint = clientSocket.RemoteEndPoint.ToString();
+                networkStream = clientSocket.GetStream();
                 
-
-                var tlsOptions = TlsOptions;
+                var tlsOptions = _options.TlsOptions;
                 var tlsCertificate = tlsOptions?.CertificateProvider?.GetCertificate();
                 if (tlsCertificate != null)
                 {
-                    var sslStream = new SslStream(stream, false, tlsOptions.RemoteCertificateValidationCallback);
+                    sslStream = new SslStream(networkStream, false, tlsOptions.RemoteCertificateValidationCallback);
 
                     await sslStream.AuthenticateAsServerAsync(
                         tlsCertificate,
@@ -95,7 +97,7 @@ namespace MQTTnet.Server.Endpoints
                         tlsOptions.SslProtocol,
                         tlsOptions.CheckCertificateRevocation).ConfigureAwait(false);
 
-                    stream = sslStream;
+                    networkStream = sslStream;
 
                     clientCertificate = sslStream.RemoteCertificate as X509Certificate2;
 
@@ -105,11 +107,14 @@ namespace MQTTnet.Server.Endpoints
                     }
                 }
 
-                return new MqttTcpChannel(stream, remoteEndPoint, clientCertificate);
+                var channel = new MqttTcpChannel(networkStream, remoteEndPoint, clientCertificate);
+                var context = new HandleClientConnectionContext(channel);
+                await _clientConnectionHandler.Invoke(context).ConfigureAwait(false);
             }
             catch (Exception exception)
             {
-                stream?.Dispose();
+                sslStream?.Dispose();
+                networkStream?.Dispose();
 
 #if NETSTANDARD1_3 || NETSTANDARD2_0 || NET461 || NET472
                 clientCertificate?.Dispose();
@@ -120,20 +125,22 @@ namespace MQTTnet.Server.Endpoints
                     if (socketException.SocketErrorCode == SocketError.ConnectionAborted ||
                         socketException.SocketErrorCode == SocketError.OperationAborted)
                     {
-                        return null;
+                        return;
                     }
                 }
 
-                _logger.Error(exception, $"Error while accepting connection at TCP listener {_localEndPoint} TLS={TlsOptions != null}.");
+                _logger.Error(exception, $"Error while accepting connection at TCP listener {_localEndPoint} TLS={_options.TlsOptions != null}.");
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
             }
-
-            return null;
         }
 
         public void Dispose()
         {
-            _socket?.Dispose();
+            _cancellationToken?.Cancel();
+            _cancellationToken?.Dispose();
+            _cancellationToken = null;
+            
+            _listenerSocket?.Dispose();
         }
     }
 }

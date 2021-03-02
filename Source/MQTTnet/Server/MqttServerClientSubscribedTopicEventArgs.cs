@@ -2,7 +2,7 @@
 
 namespace MQTTnet.Server
 {
-    public class MqttServerClientSubscribedTopicEventArgs : EventArgs
+    public sealed class MqttServerClientSubscribedTopicEventArgs : EventArgs
     {
         public MqttServerClientSubscribedTopicEventArgs(string clientId, MqttTopicFilter topicFilter)
         {

@@ -66,23 +66,23 @@ namespace MQTTnet.AspNetCore.Extensions
             services.AddSingleton<IMqttNetLogger>(logger);
             services.AddSingleton<MqttHostedServer>();
             services.AddSingleton<IHostedService>(s => s.GetService<MqttHostedServer>());
-            services.AddSingleton<IMqttServer>(s => s.GetService<MqttHostedServer>());
+           //services.AddSingleton<IMqttServer>(s => s.GetService<MqttHostedServer>());
 
             return services;
         }
 
         public static IServiceCollection AddMqttWebSocketServerAdapter(this IServiceCollection services)
         {
-            services.AddSingleton<MqttWebSocketServerAdapter>();
-            services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttWebSocketServerAdapter>());
+            //services.AddSingleton<MqttWebSocketServerAdapter>();
+            //services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttWebSocketServerAdapter>());
 
             return services;
         }
 
         public static IServiceCollection AddMqttTcpServerAdapter(this IServiceCollection services)
         {
-            services.AddSingleton<MqttTcpServerAdapter>();
-            services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttTcpServerAdapter>());
+            //services.AddSingleton<MqttTcpServerAdapter>();
+            //services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttTcpServerAdapter>());
 
             return services;
         }
@@ -90,7 +90,7 @@ namespace MQTTnet.AspNetCore.Extensions
         public static IServiceCollection AddMqttConnectionHandler(this IServiceCollection services)
         {
             services.AddSingleton<MqttConnectionHandler>();
-            services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttConnectionHandler>());
+            //services.AddSingleton<IMqttServerAdapter>(s => s.GetService<MqttConnectionHandler>());
 
             return services;
         }

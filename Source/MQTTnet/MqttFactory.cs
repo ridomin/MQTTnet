@@ -6,7 +6,6 @@ using MQTTnet.LowLevelClient;
 using MQTTnet.Server;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace MQTTnet
 {
@@ -25,11 +24,6 @@ namespace MQTTnet
         }
 
         public IMqttNetLogger DefaultLogger { get; }
-
-        public IList<Func<IMqttFactory, IMqttServerAdapter>> DefaultServerAdapters { get; } = new List<Func<IMqttFactory, IMqttServerAdapter>>
-        {
-            factory => new MqttTcpServerAdapter(factory.DefaultLogger)
-        };
 
         public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
@@ -102,23 +96,7 @@ namespace MQTTnet
         {
             if (logger == null) throw new ArgumentNullException(nameof(logger));
 
-            var serverAdapters = DefaultServerAdapters.Select(a => a.Invoke(this));
-            return CreateMqttServer(serverAdapters, logger);
-        }
-
-        public IMqttServer CreateMqttServer(IEnumerable<IMqttServerAdapter> serverAdapters, IMqttNetLogger logger)
-        {
-            if (serverAdapters == null) throw new ArgumentNullException(nameof(serverAdapters));
-            if (logger == null) throw new ArgumentNullException(nameof(logger));
-
-            return new MqttServer(serverAdapters, logger);
-        }
-
-        public IMqttServer CreateMqttServer(IEnumerable<IMqttServerAdapter> serverAdapters)
-        {
-            if (serverAdapters == null) throw new ArgumentNullException(nameof(serverAdapters));
-
-            return new MqttServer(serverAdapters, DefaultLogger);
+            return new MqttServer(logger);
         }
     }
 }

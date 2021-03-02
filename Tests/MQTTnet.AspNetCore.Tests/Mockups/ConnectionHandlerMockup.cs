@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace MQTTnet.AspNetCore.Tests.Mockups
 {
-    public class ConnectionHandlerMockup: IMqttServerAdapter
+    public class ConnectionHandlerMockup
     {
         public TaskCompletionSource<MqttConnectionContext> Context { get; } = new TaskCompletionSource<MqttConnectionContext>();
         public Func<IMqttChannelAdapter, Task> ClientHandler { get; set; }

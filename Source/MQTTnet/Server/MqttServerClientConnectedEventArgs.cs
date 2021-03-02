@@ -2,7 +2,7 @@
 
 namespace MQTTnet.Server
 {
-    public class MqttServerClientConnectedEventArgs : EventArgs
+    public sealed class MqttServerClientConnectedEventArgs : EventArgs
     {
         public MqttServerClientConnectedEventArgs(string clientId)
         {

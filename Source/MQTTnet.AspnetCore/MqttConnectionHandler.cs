@@ -8,7 +8,7 @@ using MQTTnet.Formatter;
 
 namespace MQTTnet.AspNetCore
 {
-    public class MqttConnectionHandler : ConnectionHandler, IMqttServerAdapter
+    public class MqttConnectionHandler : ConnectionHandler
     {
         public Func<IMqttChannelAdapter, Task> ClientHandler { get; set; }
 

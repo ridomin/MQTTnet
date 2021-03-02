@@ -12,12 +12,14 @@ namespace MQTTnet.Server.Endpoints
 {
     public sealed class MqttServerEndpointAdapter : IDisposable
     {
+        CancellationTokenSource _cancellationToken = new CancellationTokenSource();
+        
         readonly IMqttServerEndpoint _endpoint;
         readonly Func<IMqttChannelAdapter, Task> _clientHandlerCallback;
         readonly IMqttServerOptions _options;
         readonly IMqttNetScopedLogger _logger;
         readonly IMqttNetLogger _rootLogger;
-
+        
         public MqttServerEndpointAdapter(
             IMqttServerEndpoint endpoint,
             Func<IMqttChannelAdapter, Task> clientHandlerCallback,
@@ -32,20 +34,26 @@ namespace MQTTnet.Server.Endpoints
             _logger = logger.CreateScopedLogger(nameof(MqttServerEndpointAdapter));
         }
 
-        public void Start(CancellationToken cancellationToken)
+        public void Start()
         {
-            Task.Run(() => DoWork(cancellationToken), cancellationToken);
+            Task.Run(() => DoWork(_cancellationToken.Token), _cancellationToken.Token);
         }
 
         async Task DoWork(CancellationToken cancellationToken)
         {
             try
             {
-                _endpoint.Open(_options, _rootLogger);
+                // var openEndpointContext = new OpenEndpointContext
+                // {
+                //     ServerOptions = _options,
+                //     Logger = _rootLogger
+                // };
+                //
+                // await _endpoint.OpenEndpointAsync(openEndpointContext, cancellationToken).ConfigureAwait(false);
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    await TryAcceptAsync(cancellationToken).ConfigureAwait(false);
+                    await TryAcceptClientAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
             finally
@@ -55,17 +63,19 @@ namespace MQTTnet.Server.Endpoints
             
         }
 
-        async Task TryAcceptAsync(CancellationToken cancellationToken)
+        async Task TryAcceptClientAsync(CancellationToken cancellationToken)
         {
             try
             {
-                var client = await _endpoint.AcceptAsync(cancellationToken).ConfigureAwait(false);
-                if (client == null)
-                {
-                    return;
-                }
+                //var context = new HandleClientConnectionContext();
+                
+                //var client = await _endpoint.AcceptClientAsync(context, cancellationToken).ConfigureAwait(false);
+                // if (client == null)
+                // {
+                //     return;
+                // }
 
-                Task.Run(() => TryHandleConnectionAsync(client, cancellationToken), cancellationToken).RunInBackground(_logger);
+                //Task.Run(() => TryHandleConnectionAsync(client, cancellationToken), cancellationToken).RunInBackground(_logger);
             }
             catch (Exception exception)
             {
@@ -102,6 +112,16 @@ namespace MQTTnet.Server.Endpoints
 
         public void Dispose()
         {
+            try
+            {
+                _cancellationToken?.Cancel();
+                _cancellationToken?.Dispose();
+                _cancellationToken = null;
+            }
+            finally
+            {
+                _endpoint.Dispose();
+            }
         }
     }
 }

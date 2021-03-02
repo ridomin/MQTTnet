@@ -7,7 +7,7 @@ using MQTTnet.Channel;
 
 namespace MQTTnet.Implementations
 {
-    public class MqttClientAdapterFactory : IMqttClientAdapterFactory
+    public sealed class MqttClientAdapterFactory : IMqttClientAdapterFactory
     {
         readonly IMqttNetLogger _logger;
 

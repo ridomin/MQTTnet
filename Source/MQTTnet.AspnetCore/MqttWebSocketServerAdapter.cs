@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace MQTTnet.AspNetCore
 {
-    public sealed class MqttWebSocketServerAdapter : IMqttServerAdapter
+    public sealed class MqttWebSocketServerAdapter
     {
         readonly IMqttNetLogger _rootLogger;
 

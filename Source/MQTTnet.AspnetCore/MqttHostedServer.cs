@@ -1,33 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using MQTTnet.Adapter;
 using MQTTnet.Diagnostics;
+using MQTTnet.Internal;
 using MQTTnet.Server;
 
 namespace MQTTnet.AspNetCore
 {
-    public class MqttHostedServer : MqttServer, IHostedService
+    public sealed class MqttHostedServer : IHostedService
     {
-        private readonly IMqttServerOptions _options;
+        readonly IMqttServer _mqttServer;
+        readonly IMqttServerOptions _options;
 
-        public MqttHostedServer(IMqttServerOptions options, IEnumerable<IMqttServerAdapter> adapters, IMqttNetLogger logger) 
-            : base(adapters, logger)
+        public MqttHostedServer(IMqttServerOptions options, IMqttNetLogger logger)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+
+            _mqttServer = new MqttServer(logger);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _ = StartAsync(_options);
+            _mqttServer.StartAsync(_options).RunInBackground();
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            return StopAsync();
+            return _mqttServer.StopAsync();
         }
     }
 }

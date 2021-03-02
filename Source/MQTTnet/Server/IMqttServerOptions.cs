@@ -27,19 +27,11 @@ namespace MQTTnet.Server
         IMqttServerUnsubscriptionInterceptor UnsubscriptionInterceptor { get; }
         IMqttServerApplicationMessageInterceptor ApplicationMessageInterceptor { get; }
         IMqttServerClientMessageQueueInterceptor ClientMessageQueueInterceptor { get; }
-
-        [Obsolete("Please use _Endpoints_ instead. This will be removed soon.")]
-        MqttServerTcpEndpointOptions DefaultEndpointOptions { get; }
-
-        [Obsolete("Please use _Endpoints_ instead. This will be removed soon.")]
-        MqttServerTlsTcpEndpointOptions TlsEndpointOptions { get; }
-
+        IMqttServerClientDisconnectedHandler ClientDisconnectedInterceptor { get; set; }
+        IMqttServerApplicationMessageInterceptor UndeliveredMessageInterceptor { get; set; }
+        
         IMqttServerStorage Storage { get; }
 
         IMqttRetainedMessagesManager RetainedMessagesManager { get; }
-
-        IMqttServerApplicationMessageInterceptor UndeliveredMessageInterceptor { get; set; }
-
-        IMqttServerClientDisconnectedHandler ClientDisconnectedInterceptor { get; set; }
     }
 }

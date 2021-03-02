@@ -109,8 +109,8 @@ namespace MQTTnet.AspNetCore.Tests
                 .UseStartup<Startup>()
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddHostedMqttServer(o => o.WithoutDefaultEndpoint());
-                    services.AddSingleton<IMqttServerAdapter>(mockup);
+                    services.AddHostedMqttServer(o => {});
+                    //services.AddSingleton<IMqttServerAdapter>(mockup);
                 })
                 .Build())
             using (var client = new MqttFactory().CreateMqttClient())

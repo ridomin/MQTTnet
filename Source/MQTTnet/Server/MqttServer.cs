@@ -8,32 +8,29 @@ using MQTTnet.Server.Status;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using MQTTnet.Formatter;
 using MQTTnet.Implementations;
-using MQTTnet.Internal;
 using MQTTnet.Server.Endpoints;
 
 namespace MQTTnet.Server
 {
-    public class MqttServer : Disposable, IMqttServer
+    public sealed class MqttServer : IMqttServer
     {
-        readonly List<MqttServerEndpointAdapter> _endpointAdapters = new List<MqttServerEndpointAdapter>();
         readonly MqttServerEventDispatcher _eventDispatcher;
-        readonly ICollection<IMqttServerAdapter> _adapters;
         readonly IMqttNetLogger _rootLogger;
         readonly IMqttNetScopedLogger _logger;
 
         MqttClientSessionsManager _clientSessionsManager;
         IMqttRetainedMessagesManager _retainedMessagesManager;
         MqttServerKeepAliveMonitor _keepAliveMonitor;
-        CancellationTokenSource _cancellationTokenSource;
+        CancellationTokenSource _cancellationToken;
+        bool _isDisposed;
 
-        public MqttServer(IEnumerable<IMqttServerAdapter> adapters, IMqttNetLogger logger)
+        public MqttServer(IMqttNetLogger logger)
         {
-            if (adapters == null) throw new ArgumentNullException(nameof(adapters));
-            _adapters = adapters.ToList();
-
             if (logger == null) throw new ArgumentNullException(nameof(logger));
             _logger = logger.CreateScopedLogger(nameof(MqttServer));
             _rootLogger = logger;
@@ -41,7 +38,7 @@ namespace MQTTnet.Server
             _eventDispatcher = new MqttServerEventDispatcher(logger);
         }
 
-        public bool IsStarted => _cancellationTokenSource != null;
+        public bool IsStarted => _cancellationToken != null;
 
         public IMqttServerStartedHandler StartedHandler { get; set; }
 
@@ -155,11 +152,10 @@ namespace MQTTnet.Server
 
             Options = options ?? throw new ArgumentNullException(nameof(options));
             
-            _cancellationTokenSource = new CancellationTokenSource();
-            var cancellationToken = _cancellationTokenSource.Token;
+            _cancellationToken = new CancellationTokenSource();
+            var cancellationToken = _cancellationToken.Token;
 
             _retainedMessagesManager = Options.RetainedMessagesManager ?? throw new MqttConfigurationException("options.RetainedMessagesManager must not be null.");
-
             await _retainedMessagesManager.Start(Options, _rootLogger).ConfigureAwait(false);
             await _retainedMessagesManager.LoadMessagesAsync().ConfigureAwait(false);
 
@@ -169,26 +165,8 @@ namespace MQTTnet.Server
             _keepAliveMonitor = new MqttServerKeepAliveMonitor(Options, _clientSessionsManager, _rootLogger);
             _keepAliveMonitor.Start(cancellationToken);
 
-            if (options.Endpoints.Any())
-            {
-                foreach (var endpoint in options.Endpoints)
-                {
-                    var endpointAdapter = new MqttServerEndpointAdapter(endpoint, c => _clientSessionsManager.HandleClientConnectionAsync(c, cancellationToken), options, _rootLogger);
-                    endpointAdapter.Start(cancellationToken);
-                    _endpointAdapters.Add(endpointAdapter);
-                }
-            }
-            else
-            {
-                foreach (var adapter in _adapters)
-                {
-                    adapter.ClientHandler = c =>
-                        _clientSessionsManager.HandleClientConnectionAsync(c, cancellationToken);
+            await OpenEndpointsAsync(cancellationToken).ConfigureAwait(false);
 
-                    await adapter.StartAsync(Options).ConfigureAwait(false);
-                }
-            }
-            
             _logger.Info("Started.");
 
             var startedHandler = StartedHandler;
@@ -202,28 +180,20 @@ namespace MQTTnet.Server
         {
             try
             {
-                if (_cancellationTokenSource == null)
+                if (_cancellationToken == null)
                 {
                     return;
                 }
 
-                _cancellationTokenSource.Cancel(false);
+                _cancellationToken.Cancel(false);
 
                 await _clientSessionsManager.CloseAllConnectionsAsync().ConfigureAwait(false);
                 
-                foreach (var adapter in _adapters)
+                foreach (var endpoint in Options.Endpoints)
                 {
-                    adapter.ClientHandler = null;
-                    await adapter.StopAsync().ConfigureAwait(false);
+                    endpoint.Dispose();
                 }
-
-                foreach (var endpointAdapter in _endpointAdapters)
-                {
-                    endpointAdapter.Dispose();
-                }
-
-                _endpointAdapters.Clear();
-
+                
                 _logger.Info("Stopped.");
             }
             finally
@@ -231,8 +201,8 @@ namespace MQTTnet.Server
                 _clientSessionsManager?.Dispose();
                 _clientSessionsManager = null;
 
-                _cancellationTokenSource?.Dispose();
-                _cancellationTokenSource = null;
+                _cancellationToken?.Dispose();
+                _cancellationToken = null;
 
                 _retainedMessagesManager = null;
             }
@@ -243,30 +213,52 @@ namespace MQTTnet.Server
                 await stoppedHandler.HandleServerStoppedAsync(EventArgs.Empty).ConfigureAwait(false);
             }
         }
-
-        protected override void Dispose(bool disposing)
+        
+        public void Dispose()
         {
-            if (disposing)
-            {
-                StopAsync().GetAwaiter().GetResult();
+            StopAsync().GetAwaiter().GetResult();
+            
+            _clientSessionsManager?.Dispose();
+            _cancellationToken?.Dispose();
 
-                foreach (var adapter in _adapters)
-                {
-                    adapter.Dispose();
-                }
+            _isDisposed = true;
+        }
+        
+        async Task OpenEndpointsAsync(CancellationToken cancellationToken)
+        {
+            if (Options?.Endpoints?.Any() == false)
+            {
+                throw new InvalidOperationException("At least one endpoint must be configured in the options.");
             }
 
-            base.Dispose(disposing);
+            _logger.Verbose("Opening endpoints.");
+
+            foreach (var endpoint in Options.Endpoints)
+            {
+                var context = new OpenEndpointContext(HandleClientConnectionAsync, Options, _rootLogger);
+                await endpoint.OpenEndpointAsync(context, cancellationToken).ConfigureAwait(false);
+            }
         }
 
-        Task OnHandleClient(IMqttChannelAdapter channelAdapter, CancellationToken cancellationToken)
+        async Task HandleClientConnectionAsync(HandleClientConnectionContext handleClientConnectionContext)
         {
-            return _clientSessionsManager.HandleClientConnectionAsync(channelAdapter, cancellationToken);
+            using (var channelAdapter = new MqttChannelAdapter(handleClientConnectionContext.Channel, new MqttPacketFormatterAdapter(new MqttPacketWriter()), null, _rootLogger))
+            {
+                await _clientSessionsManager.HandleClientConnectionAsync(channelAdapter, CancellationToken.None).ConfigureAwait(false);    
+            }
         }
 
+        void ThrowIfDisposed()
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException(nameof(MqttServer));
+            }
+        }
+        
         void ThrowIfStarted()
         {
-            if (_cancellationTokenSource != null)
+            if (_cancellationToken != null)
             {
                 throw new InvalidOperationException("The MQTT server is already started.");
             }
@@ -274,7 +266,7 @@ namespace MQTTnet.Server
 
         void ThrowIfNotStarted()
         {
-            if (_cancellationTokenSource == null)
+            if (_cancellationToken == null)
             {
                 throw new InvalidOperationException("The MQTT server is not started.");
             }

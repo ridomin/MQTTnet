@@ -2,7 +2,7 @@
 
 namespace MQTTnet.Server
 {
-    public class MqttServerClientDisconnectedEventArgs : EventArgs
+    public sealed class MqttServerClientDisconnectedEventArgs : EventArgs
     {
         public MqttServerClientDisconnectedEventArgs(string clientId, MqttClientDisconnectType disconnectType)
         {

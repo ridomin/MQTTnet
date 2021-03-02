@@ -189,7 +189,7 @@ namespace MQTTnet.Tests
                 await Task.Delay(500);
                 Assert.IsFalse(client.IsConnected);
 
-                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultEndpointPort(testEnvironment.ServerPort).Build());
+                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultTcpEndpoint(testEnvironment.ServerPort).Build());
                 await Task.Delay(500);
 
                 await client.ConnectAsync(new MqttClientOptionsBuilder().WithTcpServer("127.0.0.1", testEnvironment.ServerPort).Build());
@@ -226,7 +226,7 @@ namespace MQTTnet.Tests
                     }
                 }
 
-                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultEndpointPort(testEnvironment.ServerPort).Build());
+                await server.StartAsync(new MqttServerOptionsBuilder().WithDefaultTcpEndpoint(testEnvironment.ServerPort).Build());
                 await Task.Delay(500);
 
                 await client.ConnectAsync(new MqttClientOptionsBuilder().WithTcpServer("127.0.0.1", testEnvironment.ServerPort).Build());

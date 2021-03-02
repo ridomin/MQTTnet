@@ -2,7 +2,7 @@
 
 namespace MQTTnet.Server
 {
-    public class MqttSubscriptionInterceptorContext
+    public sealed class MqttSubscriptionInterceptorContext
     {
         public MqttSubscriptionInterceptorContext(string clientId, MqttTopicFilter topicFilter, IDictionary<object, object> sessionItems)
         {

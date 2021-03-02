@@ -149,7 +149,7 @@ namespace MQTTnet.Tests
                 connected = GetConnectedTask(managedClient);
 
                 await testEnvironment.Server.StartAsync(new MqttServerOptionsBuilder()
-                    .WithDefaultEndpointPort(testEnvironment.ServerPort).Build());
+                    .WithDefaultTcpEndpoint(testEnvironment.ServerPort).Build());
 
                 await connected;
 

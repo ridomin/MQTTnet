@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MQTTnet.Channel;
-using MQTTnet.Diagnostics;
 
 namespace MQTTnet.Server.Endpoints
 {
@@ -10,8 +8,6 @@ namespace MQTTnet.Server.Endpoints
     {
         string Id { get; }
 
-        void Open(IMqttServerOptions options, IMqttNetLogger logger);
-
-        Task<IMqttChannel> AcceptAsync(CancellationToken cancellationToken);
+        Task OpenEndpointAsync(OpenEndpointContext context, CancellationToken cancellationToken);
     }
 }
