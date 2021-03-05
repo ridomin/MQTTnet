@@ -8,7 +8,6 @@ using MQTTnet.Server.Status;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using MQTTnet.Formatter;
@@ -133,11 +132,10 @@ namespace MQTTnet.Server
         public Task<MqttClientPublishResult> PublishAsync(MqttApplicationMessage applicationMessage, CancellationToken cancellationToken)
         {
             if (applicationMessage == null) throw new ArgumentNullException(nameof(applicationMessage));
-
-            ThrowIfDisposed();
-
+            
             MqttTopicValidator.ThrowIfInvalid(applicationMessage.Topic);
-
+            
+            ThrowIfDisposed();
             ThrowIfNotStarted();
 
             _clientSessionsManager.DispatchApplicationMessage(applicationMessage, null);

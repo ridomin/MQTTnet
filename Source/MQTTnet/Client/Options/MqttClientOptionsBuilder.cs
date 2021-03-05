@@ -1,4 +1,4 @@
-﻿using MQTTnet.Client.ExtendedAuthenticationExchange;
+using MQTTnet.Client.ExtendedAuthenticationExchange;
 using MQTTnet.Formatter;
 using MQTTnet.Packets;
 using System;
