@@ -1,17 +1,17 @@
-﻿using MQTTnet.Exceptions;
-using MQTTnet.Formatter;
 using System;
 using System.Buffers.Binary;
 using System.Text;
+using MQTTnet.Exceptions;
+using MQTTnet.Formatter;
 
-namespace MQTTnet.AspNetCore
+namespace MQTTnet.Extensions.Pipelines
 {
-    public class SpanBasedMqttPacketBodyReader : IMqttPacketBodyReader
+    public sealed class SpanBasedMqttPacketBodyReader : IMqttPacketBodyReader
     {
         ReadOnlyMemory<byte> _buffer;
 
         int _offset;
-        
+
         public void SetBuffer(ReadOnlyMemory<byte> buffer)
         {
             _buffer = buffer;
@@ -21,7 +21,7 @@ namespace MQTTnet.AspNetCore
         public int Length => _buffer.Length;
 
         public bool EndOfStream => _buffer.Length.Equals(_offset);
-        
+
         public int Offset => _offset;
 
         public byte ReadByte()
@@ -38,7 +38,7 @@ namespace MQTTnet.AspNetCore
         {
             return ReadSegmentWithLengthPrefix().ToArray();
         }
-        
+
         public unsafe string ReadStringWithLengthPrefix()
         {
             var buffer = ReadSegmentWithLengthPrefix();

@@ -1,7 +1,4 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Connections.Features;
 using MQTTnet.Adapter;
-using MQTTnet.AspNetCore.Client.Tcp;
 using MQTTnet.Exceptions;
 using MQTTnet.Formatter;
 using MQTTnet.Packets;
@@ -10,7 +7,9 @@ using System.IO.Pipelines;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using MQTTnet.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Connections.Features;
+using MQTTnet.Extensions.Pipelines;
 using MQTTnet.Internal;
 
 namespace MQTTnet.AspNetCore
@@ -19,10 +18,10 @@ namespace MQTTnet.AspNetCore
     {
         readonly AsyncLock _writerLock = new AsyncLock();
         readonly SpanBasedMqttPacketBodyReader _reader;
-        
+
         PipeReader _input;
         PipeWriter _output;
-        
+
         public MqttConnectionContext(MqttPacketFormatterAdapter packetFormatterAdapter, ConnectionContext connection)
         {
             PacketFormatterAdapter = packetFormatterAdapter ?? throw new ArgumentNullException(nameof(packetFormatterAdapter));
@@ -62,7 +61,7 @@ namespace MQTTnet.AspNetCore
         public X509Certificate2 ClientCertificate => Http?.HttpContext?.Connection?.ClientCertificate;
 
         public ConnectionContext Connection { get; }
-        
+
         public MqttPacketFormatterAdapter PacketFormatterAdapter { get; }
 
         public long BytesSent { get; set; }

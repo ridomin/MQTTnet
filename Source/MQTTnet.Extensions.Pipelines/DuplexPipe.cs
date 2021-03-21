@@ -1,6 +1,6 @@
-﻿using System.IO.Pipelines;
+using System.IO.Pipelines;
 
-namespace MQTTnet.AspNetCore.Client.Tcp
+namespace MQTTnet.Extensions.Pipelines
 {
     public class DuplexPipe : IDuplexPipe
     {

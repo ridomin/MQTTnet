@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
-namespace MQTTnet.AspNetCore.Client.Tcp
+namespace MQTTnet.Extensions.Pipelines
 {
     public static class BufferExtensions
     {
@@ -16,6 +16,7 @@ namespace MQTTnet.AspNetCore.Client.Tcp
             {
                 throw new InvalidOperationException("Buffer backed by array was expected");
             }
+
             return result;
         }
     }

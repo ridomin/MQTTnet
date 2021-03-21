@@ -1,13 +1,13 @@
-﻿using MQTTnet.Adapter;
-using MQTTnet.AspNetCore.Client.Tcp;
-using MQTTnet.Client.Options;
-using MQTTnet.Formatter;
 using System;
 using System.Net;
+using MQTTnet.Adapter;
+using MQTTnet.AspNetCore;
+using MQTTnet.Client.Options;
+using MQTTnet.Formatter;
 
-namespace MQTTnet.AspNetCore.Client
+namespace MQTTnet.Extensions.Pipelines
 {
-    public class MqttClientConnectionContextFactory : IMqttClientAdapterFactory
+    public sealed class PipelineMqttClientAdapterFactory : IMqttClientAdapterFactory
     {
         public IMqttChannelAdapter CreateClientAdapter(IMqttClientOptions options)
         {

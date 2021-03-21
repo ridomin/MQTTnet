@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using MQTTnet.Client.Receiving;
 
@@ -20,9 +20,9 @@ namespace MQTTnet.Extensions.Rpc
 
         public async Task HandleApplicationMessageReceivedAsync(MqttApplicationMessageReceivedEventArgs eventArgs)
         {
-            // First try to check if there is a pending RPC call! 
+            // First try to check if there is a pending RPC call!
             await _handleReceivedApplicationMessageAsync(eventArgs).ConfigureAwait(false);
-            
+
             if (OriginalHandler != null)
             {
                 await OriginalHandler.HandleApplicationMessageReceivedAsync(eventArgs).ConfigureAwait(false);

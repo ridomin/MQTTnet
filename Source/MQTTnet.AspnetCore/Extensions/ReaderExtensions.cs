@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using MQTTnet.Adapter;
 using MQTTnet.Exceptions;
@@ -9,11 +9,11 @@ namespace MQTTnet.AspNetCore.Extensions
 {
     public static class ReaderExtensions
     {
-        public static bool TryDecode(this MqttPacketFormatterAdapter formatter, 
-            SpanBasedMqttPacketBodyReader reader, 
-            in ReadOnlySequence<byte> input, 
-            out MqttBasePacket packet, 
-            out SequencePosition consumed, 
+        public static bool TryDecode(this MqttPacketFormatterAdapter formatter,
+            SpanBasedMqttPacketBodyReader reader,
+            in ReadOnlySequence<byte> input,
+            out MqttBasePacket packet,
+            out SequencePosition consumed,
             out SequencePosition observed,
             out int bytesRead)
         {
@@ -79,7 +79,7 @@ namespace MQTTnet.AspNetCore.Extensions
             var index = 1;
             headerLength = 0;
             bodyLength = 0;
-            
+
             var temp = input.Slice(0, Math.Min(5, input.Length)).GetMemory().Span;
 
             do

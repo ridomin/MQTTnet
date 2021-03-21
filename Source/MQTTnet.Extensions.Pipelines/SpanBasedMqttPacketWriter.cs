@@ -1,12 +1,12 @@
-﻿using MQTTnet.Formatter;
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
+using MQTTnet.Formatter;
 
-namespace MQTTnet.AspNetCore
+namespace MQTTnet.Extensions.Pipelines
 {
-    public class SpanBasedMqttPacketWriter : IMqttPacketWriter
+    public sealed class SpanBasedMqttPacketWriter : IMqttPacketWriter
     {
         readonly ArrayPool<byte> _pool = ArrayPool<byte>.Create();
 
@@ -76,7 +76,7 @@ namespace MQTTnet.AspNetCore
         public void WriteVariableLengthInteger(uint value)
         {
             GrowIfNeeded(4);
-            
+
             var x = value;
             do
             {
@@ -105,7 +105,7 @@ namespace MQTTnet.AspNetCore
         public void WriteWithLengthPrefix(byte[] payload)
         {
             GrowIfNeeded(payload.Length + 2);
-            
+
             Write((ushort)payload.Length);
             payload.CopyTo(_buffer, _position);
             Commit(payload.Length);
@@ -121,7 +121,7 @@ namespace MQTTnet.AspNetCore
             _position += count;
         }
 
-        void GrowIfNeeded(int requiredAdditional) 
+        void GrowIfNeeded(int requiredAdditional)
         {
             var requiredTotal = _position + requiredAdditional;
             if (_buffer.Length >= requiredTotal)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +19,7 @@ namespace MQTTnet.AspNetCore
 
             return subProtocol;
         }
-        
+
         public static string SelectSubProtocol(IList<string> requestedSubProtocolValues)
         {
             if (requestedSubProtocolValues == null) throw new ArgumentNullException(nameof(requestedSubProtocolValues));

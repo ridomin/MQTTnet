@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,11 +9,11 @@ using MQTTnet.Server;
 
 namespace MQTTnet.AspNetCore
 {
-    public class MqttHostedServer : MqttServer, IHostedService
+    public sealed class MqttHostedServer : MqttServer, IHostedService
     {
-        private readonly IMqttServerOptions _options;
+        readonly IMqttServerOptions _options;
 
-        public MqttHostedServer(IMqttServerOptions options, IEnumerable<IMqttServerAdapter> adapters, IMqttNetLogger logger) 
+        public MqttHostedServer(IMqttServerOptions options, IEnumerable<IMqttServerAdapter> adapters, IMqttNetLogger logger)
             : base(adapters, logger)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));

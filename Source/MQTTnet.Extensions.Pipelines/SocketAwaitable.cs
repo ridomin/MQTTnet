@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Net.Sockets;
@@ -6,30 +6,30 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace MQTTnet.AspNetCore.Client.Tcp
+namespace MQTTnet.Extensions.Pipelines
 {
-    public class SocketAwaitable : ICriticalNotifyCompletion
+    public sealed class SocketAwaitable : ICriticalNotifyCompletion
     {
-        private static readonly Action _callbackCompleted = () => { };
+        static readonly Action CallbackCompleted = () => { };
 
-        private readonly PipeScheduler _ioScheduler;
+        readonly PipeScheduler _ioScheduler;
 
-        private Action _callback;
-        private int _bytesTransferred;
-        private SocketError _error;
+        Action _callback;
+        int _bytesTransferred;
+        SocketError _error;
 
         public SocketAwaitable(PipeScheduler ioScheduler)
         {
             _ioScheduler = ioScheduler;
         }
 
-        public bool IsCompleted => ReferenceEquals(_callback, _callbackCompleted);
+        public bool IsCompleted => ReferenceEquals(_callback, CallbackCompleted);
 
         public SocketAwaitable GetAwaiter() => this;
 
         public int GetResult()
         {
-            Debug.Assert(ReferenceEquals(_callback, _callbackCompleted));
+            Debug.Assert(ReferenceEquals(_callback, CallbackCompleted));
 
             _callback = null;
 
@@ -43,8 +43,8 @@ namespace MQTTnet.AspNetCore.Client.Tcp
 
         public void OnCompleted(Action continuation)
         {
-            if (ReferenceEquals(_callback, _callbackCompleted) ||
-                ReferenceEquals(Interlocked.CompareExchange(ref _callback, continuation, null), _callbackCompleted))
+            if (ReferenceEquals(_callback, CallbackCompleted) ||
+                ReferenceEquals(Interlocked.CompareExchange(ref _callback, continuation, null), CallbackCompleted))
             {
                 Task.Run(continuation);
             }
@@ -59,7 +59,8 @@ namespace MQTTnet.AspNetCore.Client.Tcp
         {
             _error = socketError;
             _bytesTransferred = bytesTransferred;
-            var continuation = Interlocked.Exchange(ref _callback, _callbackCompleted);
+
+            var continuation = Interlocked.Exchange(ref _callback, CallbackCompleted);
 
             if (continuation != null)
             {
