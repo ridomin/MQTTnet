@@ -6,5 +6,6 @@ namespace MQTTnet.Packets
 {
     public abstract class MqttPacket
     {
+        public bool ShouldDrop { get; set; } = false;
     }
 }

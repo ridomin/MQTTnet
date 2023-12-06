@@ -802,6 +802,11 @@ namespace MQTTnet.Client
                         return;
                     }
 
+                    if (packet.ShouldDrop)
+                    {
+                        continue;
+                    }    
+
                     if (packet == null)
                     {
                         await DisconnectInternal(_packetReceiverTask, null, null).ConfigureAwait(false);
