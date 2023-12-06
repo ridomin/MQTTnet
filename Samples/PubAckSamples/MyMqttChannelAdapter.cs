@@ -32,9 +32,9 @@ namespace PubAckSamples
 
         Statistics _statistics; // mutable struct, don't make readonly!
 
-        Func<int, bool>? _dropPackageCallback;
+        Func<Guid, bool>? _dropPackageCallback;
 
-        public MyMqttChannelAdapter(IMqttChannel channel, MqttPacketFormatterAdapter packetFormatterAdapter, IMqttNetLogger logger, Func<int, bool>? dropPackageCallback = null!)
+        public MyMqttChannelAdapter(IMqttChannel channel, MqttPacketFormatterAdapter packetFormatterAdapter, IMqttNetLogger logger, Func<Guid, bool>? dropPackageCallback = null!)
         {
             _channel = channel ?? throw new ArgumentNullException(nameof(channel));
             _dropPackageCallback = dropPackageCallback;
@@ -186,7 +186,8 @@ namespace PubAckSamples
 
                 if (packet is MqttPublishPacket publishPacket)
                 {
-                    if (_dropPackageCallback!(publishPacket.PacketIdentifier))
+                    
+                    if (publishPacket.CorrelationData?.Length > 0 && _dropPackageCallback!(new Guid(publishPacket.CorrelationData)))
                     {
                         packet.ShouldDrop = true;
                     }

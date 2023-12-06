@@ -10,11 +10,11 @@ namespace PubAckSamples;
 internal class Program
 {
 
-    static int pidToDrop = 0;
+    static Guid rid = Guid.Empty;
 
-    static Func<int, bool> _dropPackageCallback = pid =>
+    static Func<Guid, bool> _dropPackageCallback = pid =>
     {
-        return pid == pidToDrop; 
+        return pid == rid; 
     };
 
     private static async Task Main(string[] args)
@@ -37,16 +37,23 @@ internal class Program
         var conAck = await mqttClient.ConnectAsync(ops);
         await Console.Out.WriteLineAsync("Connected");
 
+        
         mqttClient.ApplicationMessageReceivedAsync += async m =>
         {
-            pidToDrop = m.PacketIdentifier + 4;
             await Console.Out.WriteLineAsync($"{m.PacketIdentifier} {m.ApplicationMessage.Topic}" );
         };
 
         await mqttClient.SubscribeAsync("test/rpc", MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce);
 
-        //var puback = await mqttClient.PublishStringAsync("test/rpc", "hi", MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce);
-        //await Console.Out.WriteLineAsync($"pub packet: {puback.PacketIdentifier}");
+        Guid myGuid = Guid.NewGuid();
+        rid = myGuid;
+
+        var puback = await mqttClient.PublishAsync(new MqttApplicationMessageBuilder()
+            .WithTopic("test/rpc")
+            .WithPayload("inspecing")
+            .WithCorrelationData(myGuid.ToByteArray())
+            .Build());
+        await Console.Out.WriteLineAsync($"pub packet: {puback.PacketIdentifier}");
 
         Console.ReadLine();
     }

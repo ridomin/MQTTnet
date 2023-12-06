@@ -14,8 +14,8 @@ namespace PubAckSamples
 {
     internal class MyChannelFactory : IMqttClientAdapterFactory
     {
-        Func<int, bool>? _dropPackageCallback;
-        public MyChannelFactory(Func<int, bool>? dropPackageCallback)
+        Func<Guid, bool>? _dropPackageCallback;
+        public MyChannelFactory(Func<Guid, bool>? dropPackageCallback)
         {
             _dropPackageCallback = dropPackageCallback;
         }
